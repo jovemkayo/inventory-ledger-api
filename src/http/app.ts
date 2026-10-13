@@ -4,6 +4,7 @@ import type { InventoryService } from '../application/inventory-service.ts';
 import type { ProductInput, MovementInput } from '../domain/contracts.ts';
 import { InventoryError } from '../domain/errors.ts';
 import { exactObject, pagination, readJson } from './validation.ts';
+import { present } from './presentation.ts';
 
 function respond(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
@@ -24,11 +25,12 @@ export function createApp(service: InventoryService): Server {
       const path = url.pathname;
       const detail = /^\/products\/([^/]+)(\/movements)?$/.exec(path);
       let allowed: string[];
-      if (path === '/health' || detail) allowed = ['GET'];
+      if (['/','/favicon.ico','/favicon.svg','/openapi.json','/health'].includes(path) || detail) allowed = ['GET'];
       else if (path === '/products') allowed = ['GET', 'POST'];
       else if (path === '/movements') allowed = ['POST'];
       else throw new InventoryError('NOT_FOUND', 'Route not found.');
       if (!allowed.includes(req.method ?? '')) { res.setHeader('Allow', allowed.join(', ')); throw new InventoryError('METHOD_NOT_ALLOWED', 'Method not allowed.'); }
+      if (present(path,res)) return;
       if (path === '/health') { respond(res, 200, { status: 'ok' }); return; }
       if (req.method === 'GET') {
         if (path === '/products') respond(res, 200, service.listProducts(pagination(url.searchParams)));

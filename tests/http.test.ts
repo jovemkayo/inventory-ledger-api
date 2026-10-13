@@ -7,6 +7,19 @@ import { SqliteInventoryRepository } from '../src/infrastructure/sqlite-reposito
 import { InventoryService } from '../src/application/inventory-service.ts';
 import { createApp } from '../src/http/app.ts';
 
+test('initial page and local favicons guide browser users without changing JSON endpoints', async (t) => {
+  const {base,call}=await setup(t);
+  const root=await fetch(base+'/'); assert.equal(root.status,200);assert.match(root.headers.get('content-type')??'',/text\/html/);
+  const html=await root.text();assert.match(html,/API de estoque ativa/);assert.match(html,/favicon/);assert.doesNotMatch(html,/sqlite|INVENTORY_DB_PATH|service_role/);
+  const ico=await fetch(base+'/favicon.ico');assert.equal(ico.status,200);assert.equal(ico.headers.get('content-type'),'image/x-icon');
+  const bytes=new Uint8Array(await ico.arrayBuffer());assert.deepEqual([...bytes.slice(0,4)],[0,0,1,0]);
+  const svg=await fetch(base+'/favicon.svg');assert.equal(svg.status,200);assert.match(svg.headers.get('content-type')??'',/image\/svg\+xml/);
+  const schema=await fetch(base+'/openapi.json');assert.equal(schema.status,200);assert.equal((await schema.json() as {openapi:string}).openapi,'3.1.0');
+  assert.equal((await call('/health')).status,200);
+  assert.equal((await call('/favicon.ico','POST',{})).status,405);
+  assert.equal((await call('/favicon.ico','GET',undefined,{Origin:'https://outside.example'})).status,403);
+});
+
 async function setup(t: TestContext) {
   const repo = new SqliteInventoryRepository(':memory:');
   const server = createApp(new InventoryService(repo));

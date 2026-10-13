@@ -7,7 +7,7 @@ export function toMilliQuantity(value: unknown, allowZero = false): number {
   }
   const scaled = value * 1000;
   const rounded = Math.round(scaled);
-  if (Math.abs(scaled - rounded) > Number.EPSILON * Math.max(1, Math.abs(scaled)) * 2) {
+  if (rounded / 1000 !== value) {
     throw new InventoryError('INVALID_QUANTITY', 'Quantity supports up to three decimal places.');
   }
   return rounded;

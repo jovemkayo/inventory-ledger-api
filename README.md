@@ -71,6 +71,8 @@ Erros retornam `{ "error": { "code": "INSUFFICIENT_STOCK", "message": "Insuffici
 | 415 | POST sem `application/json` |
 | 500 | Falha interna, sem detalhes privados na resposta |
 
+O saldo total de cada produto é limitado a 1.000.000.000, preservando a precisão de milésimos nas respostas numéricas. UUIDs recebidos em maiúsculas são normalizados; SKUs aceitam apenas o alfabeto ASCII indicado acima.
+
 Contrato completo: [OpenAPI](docs/openapi.json).
 
 ## Organização

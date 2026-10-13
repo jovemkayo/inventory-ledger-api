@@ -76,3 +76,11 @@ test('unexpected storage failures expose a generic error without internals', asy
   assert.equal(response.status, 500);
   assert.deepEqual(response.data, { error: { code: 'INTERNAL_ERROR', message: 'An internal error occurred.' } });
 });
+test('excess decimal precision is rejected without changing persisted data', async (t) => {
+  const { call } = await setup(t);
+  assert.equal((await call('/products', 'POST', { ...input, minimumStock: 1e-20 })).status, 400);
+  const p = await call('/products', 'POST', input);
+  assert.equal((await call('/movements', 'POST', { productId: p.data.id, type: 'in', quantity: 1.0000000000000002, reason: 'Delivery' })).status, 400);
+  assert.equal((await call('/products/' + p.data.id)).data.stock, 0);
+  assert.equal((await call('/products/' + p.data.id + '/movements')).data.total, 0);
+});

@@ -25,7 +25,7 @@ export class SqliteInventoryRepository implements InventoryRepository {
         id TEXT PRIMARY KEY, sku TEXT NOT NULL UNIQUE COLLATE NOCASE,
         name TEXT NOT NULL, unit TEXT NOT NULL CHECK(unit IN ('unit','kg','g','l','ml')),
         minimum_milli INTEGER NOT NULL CHECK(minimum_milli BETWEEN 0 AND 1000000000),
-        stock_milli INTEGER NOT NULL DEFAULT 0 CHECK(stock_milli BETWEEN 0 AND 9007199254740991),
+        stock_milli INTEGER NOT NULL DEFAULT 0 CHECK(stock_milli BETWEEN 0 AND 1000000000000),
         createdAt TEXT NOT NULL
       ) STRICT;
       CREATE TABLE IF NOT EXISTS movements (
@@ -66,10 +66,11 @@ export class SqliteInventoryRepository implements InventoryRepository {
     try {
       const p = this.getProduct(input.productId);
       if (p.unit === 'unit' && quantity % 1000 !== 0) throw new InventoryError('INVALID_QUANTITY', 'Whole units require an integer quantity.');
-      const current = Math.round(p.stock * 1000);
+      const row = this.db.prepare('SELECT stock_milli FROM products WHERE id = ?').get(p.id) as { stock_milli: number };
+      const current = row.stock_milli;
       const next = current + (input.type === 'in' ? quantity : -quantity);
       if (next < 0) throw new InventoryError('INSUFFICIENT_STOCK', 'Insufficient stock.');
-      if (!Number.isSafeInteger(next)) throw new InventoryError('INVALID_QUANTITY', 'Stock exceeds the supported range.');
+      if (!Number.isSafeInteger(next) || next > 1_000_000_000_000) throw new InventoryError('INVALID_QUANTITY', 'Stock exceeds the supported range.');
       const movement: Movement = { ...input, id: randomUUID(), createdAt: new Date().toISOString() };
       this.db.prepare('UPDATE products SET stock_milli = ? WHERE id = ?').run(next, p.id);
       this.db.prepare('INSERT INTO movements(id,productId,type,quantity_milli,reason,createdAt) VALUES(?,?,?,?,?,?)')

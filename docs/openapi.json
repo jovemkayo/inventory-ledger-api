@@ -762,7 +762,9 @@
           },
           "stock": {
             "type": "number",
-            "minimum": 0
+            "minimum": 0,
+            "maximum": 1000000000,
+            "multipleOf": 0.001
           },
           "createdAt": {
             "type": "string",

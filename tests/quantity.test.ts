@@ -9,10 +9,11 @@ test('converts valid decimal quantities into exact integer storage', () => {
   assert.equal(fromMilliQuantity(1001), 1.001);
 });
 test('rejects invalid movements instead of rounding or coercing them', () => {
-  for (const value of [0, -1, NaN, Infinity, '1', 1.0001, 1_000_000.001, null, undefined]) {
+  for (const value of [0, -1, NaN, Infinity, '1', 1.0001, 1.0000000000000002, 1_000_000.001, null, undefined]) {
     assert.throws(() => toMilliQuantity(value), { code: 'INVALID_QUANTITY' });
   }
 });
 test('allows zero only for a minimum stock threshold', () => {
   assert.equal(toMilliQuantity(0, true), 0);
+  assert.throws(() => toMilliQuantity(1e-20, true), { code: 'INVALID_QUANTITY' });
 });

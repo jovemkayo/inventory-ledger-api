@@ -76,3 +76,29 @@ test('failed history insertion rolls stock back using a real database trigger', 
     assert.equal(repo.listMovements(p.id, { limit: 50, offset: 0 }).total, 0);
   } finally { admin.close(); repo.close(); rmSync(dir, { recursive: true, force: true }); }
 });
+test('uppercase UUIDs resolve the same product and history', (t) => {
+  const repo = new SqliteInventoryRepository(':memory:'); t.after(() => repo.close());
+  const s = new InventoryService(repo); const p = s.createProduct(product);
+  assert.equal(s.getProduct(p.id.toUpperCase()).id, p.id);
+  s.recordMovement({ productId: p.id.toUpperCase(), type: 'in', quantity: 1, reason: 'Delivery' });
+  assert.equal(s.listMovements(p.id.toUpperCase(), { limit: 50, offset: 0 }).total, 1);
+});
+test('non-ASCII SKUs are rejected before uppercase expansion', (t) => {
+  const repo = new SqliteInventoryRepository(':memory:'); t.after(() => repo.close());
+  const s = new InventoryService(repo);
+  assert.throws(() => s.createProduct({ ...product, sku: 'ß'.repeat(40) }), { code: 'INVALID_INPUT' });
+  assert.equal(s.listProducts({ limit: 50, offset: 0 }).total, 0);
+});
+test('stock limit rejects overflow without creating a movement', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'inventory-limit-')); const file = join(dir, 'test.sqlite');
+  const repo = new SqliteInventoryRepository(file); const admin = new DatabaseSync(file);
+  try {
+    const p = repo.createProduct(product);
+    admin.prepare('UPDATE products SET stock_milli = ? WHERE id = ?').run(1_000_000_000_000, p.id);
+    assert.throws(() => repo.recordMovement({ productId: p.id, type: 'in', quantity: 0.001, reason: 'Delivery' }), { code: 'INVALID_QUANTITY' });
+    assert.equal(repo.getProduct(p.id).stock, 1_000_000_000);
+    assert.equal(repo.listMovements(p.id, { limit: 50, offset: 0 }).total, 0);
+    repo.recordMovement({ productId: p.id, type: 'out', quantity: 0.001, reason: 'Usage' });
+    assert.equal(repo.getProduct(p.id).stock, 999_999_999.999);
+  } finally { admin.close(); repo.close(); rmSync(dir, { recursive: true, force: true }); }
+});

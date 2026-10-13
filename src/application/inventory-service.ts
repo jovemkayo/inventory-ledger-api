@@ -22,7 +22,9 @@ export class InventoryService {
   private readonly repository: InventoryRepository;
   constructor(repository: InventoryRepository) { this.repository = repository; }
   createProduct(input: ProductInput) {
-    const sku = text(input.sku, 40, 'SKU').toUpperCase();
+    const rawSku = text(input.sku, 40, 'SKU');
+    if (!/^[A-Za-z0-9_-]+$/.test(rawSku)) throw new InventoryError('INVALID_INPUT', 'Invalid SKU.');
+    const sku = rawSku.toUpperCase();
     const name = text(input.name, 120, 'Name');
     if (!/^[A-Z0-9_-]+$/.test(sku) || !['unit', 'kg', 'g', 'l', 'ml'].includes(input.unit)) {
       throw new InventoryError('INVALID_INPUT', 'Invalid SKU or unit.');
@@ -33,17 +35,17 @@ export class InventoryService {
     }
     return this.repository.createProduct({ ...input, sku, name });
   }
-  getProduct(id: string) { validateId(id); return this.repository.getProduct(id); }
+  getProduct(id: string) { validateId(id); return this.repository.getProduct(id.toLowerCase()); }
   listProducts(page: Pagination) { validatePage(page); return this.repository.listProducts(page); }
   recordMovement(input: MovementInput) {
     validateId(input.productId);
     if (input.type !== 'in' && input.type !== 'out') throw new InventoryError('INVALID_INPUT', 'Type must be in or out.');
     toMilliQuantity(input.quantity);
     const reason = text(input.reason, 240, 'Reason');
-    return this.repository.recordMovement({ ...input, reason });
+    return this.repository.recordMovement({ ...input, productId: input.productId.toLowerCase(), reason });
   }
   listMovements(productId: string, page: Pagination) {
     validateId(productId); validatePage(page);
-    return this.repository.listMovements(productId, page);
+    return this.repository.listMovements(productId.toLowerCase(), page);
   }
 }

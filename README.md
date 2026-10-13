@@ -16,6 +16,8 @@ npm run dev
 
 O servidor escuta em `http://127.0.0.1:3000`. Para executar a versão compilada:
 
+Ao abrir esse endereço no navegador, a página inicial confirma que a API está ativa e oferece links para `/health`, `/products` e `/openapi.json`. O projeto tem favicon próprio. Os produtos continuam sendo consultados em JSON; a página inicial é orientação, sem uma interface de edição.
+
 ```sh
 npm run build
 npm start

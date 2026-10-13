@@ -2,6 +2,8 @@
 
 Aplicação demonstrativa para execução local, com dados fictícios. O repositório contém código; não publica uma API de escrita na internet.
 
+A página inicial e favicons locais são recursos públicos do projeto, sem dados de banco ou configuração interna. As rotas HTML, SVG, ICO e documentação mantêm a mesma verificação de Host/Origin das rotas da API.
+
 - Servidor ligado exclusivamente a `127.0.0.1`, sem autenticação neste escopo.
 - Não usar dados pessoais, credenciais ou registros de clientes.
 - Não configurar proxy, túnel, CORS irrestrito ou deploy público.
